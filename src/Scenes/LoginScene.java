@@ -1,31 +1,21 @@
 package Scenes;
 
+import Players.Users.User;
+import Players.Users.UserManager;
 import app.MainMenu;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.stage.Stage;
+import javafx.animation.PauseTransition;
+import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.geometry.Insets;
-import javafx.geometry.Pos;
-import javafx.application.Application;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import java.util.List;
-import javafx.animation.PauseTransition;
 import javafx.util.Duration;
-import Players.Users.User;
-import Players.Users.UserManager;
-
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-
 
 public class LoginScene {
     public static Scene create(Application app) {
@@ -33,120 +23,101 @@ public class LoginScene {
         Stage stage = menu.getPrimaryStage();
         UserManager userManager = menu.getUserManager();
 
-        // Title
-        Label title = new Label("Welcome to Pocket Monster");
-        title.setFont(new Font("Arial", 28));
+        Label badge = SceneStyler.createBadge("TRAINER PORTAL");
+        Label title = SceneStyler.createTitle("Pocket Monster Arena");
+        Label subtitle = SceneStyler.createSubtitle(
+            "Create your trainer, log in, and build a team that looks ready for battle."
+        );
 
-        // Form labels and fields
-        Label nameLabel = new Label("Name:");
+        Label nameLabel = SceneStyler.createBodyLabel("Trainer Name");
         TextField nameField = new TextField();
-        Label passLabel = new Label("Password:");
+        SceneStyler.styleTextField(nameField, "Enter your name");
+
+        Label passLabel = SceneStyler.createBodyLabel("Password");
         PasswordField passField = new PasswordField();
+        SceneStyler.styleTextField(passField, "Enter your password");
 
-        // Buttons
-        Button createBtn = new Button("Create new Account");
-        Button loginBtn = new Button("login");
+        Button createBtn = new Button("Create Account");
+        Button loginBtn = new Button("Login");
+        SceneStyler.styleSecondaryButton(createBtn);
+        SceneStyler.stylePrimaryButton(loginBtn);
+        createBtn.setPrefWidth(170);
+        loginBtn.setPrefWidth(170);
 
-        // Feedback label
         Label feedback = new Label();
+        feedback.setVisible(false);
 
-        // Layout: Grid for form
-        GridPane formGrid = new GridPane();
-        formGrid.setAlignment(Pos.CENTER);
-        formGrid.setVgap(10);
-        formGrid.setHgap(10);
-        formGrid.add(nameLabel, 0, 0);
-        formGrid.add(nameField, 1, 0);
-        formGrid.add(passLabel, 0, 1);
-        formGrid.add(passField, 1, 1);
+        VBox fields = new VBox(8, nameLabel, nameField, passLabel, passField);
+        fields.setAlignment(Pos.CENTER_LEFT);
+        fields.setPadding(new Insets(8, 0, 0, 0));
 
-        // Layout: Buttons
-        HBox buttonBox = new HBox(10, createBtn, loginBtn);
-        buttonBox.setAlignment(Pos.CENTER);
+        HBox buttonBox = new HBox(12, createBtn, loginBtn);
+        buttonBox.setAlignment(Pos.CENTER_LEFT);
 
-        // Root layout
-        VBox content = new VBox(20, title, formGrid, buttonBox, feedback);
-        content.setStyle("-fx-background-color: rgba(255,255,255,0.6); -fx-background-radius: 10;");
-        content.setAlignment(Pos.CENTER);
-        content.setPadding(new Insets(40));
+        VBox content = SceneStyler.createPanel(
+            Pos.CENTER_LEFT,
+            18,
+            badge,
+            title,
+            subtitle,
+            fields,
+            buttonBox,
+            feedback
+        );
+        content.setMaxWidth(460);
 
-        //////
-        String path = System.getProperty("user.dir") + "/Images/background.png";
-        Image backgroundImage = new Image("file:"+path);
-        ImageView backgroundView = new ImageView(backgroundImage);
-        backgroundView.setPreserveRatio(false);
-        backgroundView.setFitWidth(800);
-        backgroundView.setFitHeight(600);
+        createBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            String pass = passField.getText().trim();
 
+            if (name.isEmpty() || pass.isEmpty()) {
+                showFeedback(feedback, "Enter a trainer name and password.", true);
+                return;
+            }
 
-        
-        StackPane root = new StackPane();
-        root.getChildren().addAll(backgroundView, content);
+            if (userManager.getUserByUsername(name) != null) {
+                showFeedback(feedback, "That trainer name already exists.", true);
+                return;
+            }
 
+            stage.setScene(SceneStyler.createLoadingScene("Creating account", "Preparing your trainer profile...", 800, 600));
 
-        // Create Account button logic
-       // Create Account button logic
-createBtn.setOnAction(e -> {
-    String name = nameField.getText().trim();
-    String pass = passField.getText().trim();
-
-    if (name.isEmpty() || pass.isEmpty()) {
-        feedback.setText("Input Your Name and Password");
-        return;
-    }
-
-    if (userManager.getUserByUsername(name) != null) {
-        feedback.setText("User already exists");
-    } else {
-        // Show loading scene
-        VBox loadingBox = new VBox(new Label("Account is being created..."));
-        loadingBox.setAlignment(Pos.CENTER);
-        Scene loadingScene = new Scene(loadingBox, 800, 600);
-        stage.setScene(loadingScene);
-
-        // Wait 1.5 seconds before creating user and returning to login screen
-        PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
-       delay.setOnFinished(ev -> {
-    User newUser = new User(name, pass);
-    userManager.addUser(newUser);
-    userManager.speichereAlleUser(); // saves it to disk
-    stage.setScene(LoginScene.create(menu));
-});
-
-        delay.play();
-    }
-});
-
-// Login button logic
-loginBtn.setOnAction(e -> {
-    String name = nameField.getText().trim();
-    String pass = passField.getText().trim();
-    User user = userManager.getUserByUsername(name);
-
-    if (user == null || !user.getPassword().equals(pass)) {
-        feedback.setText("Password Invalid or User doesn't exist");
-    } else {
-        // Show loading screen
-        VBox loadingBox = new VBox(new Label("Logging in..."));
-        loadingBox.setAlignment(Pos.CENTER);
-        Scene loadingScene = new Scene(loadingBox, 800, 600);
-        stage.setScene(loadingScene);
-
-        // Wait 1.5 seconds before proceeding to Pokémon scene
-        PauseTransition delay = new PauseTransition(Duration.seconds(1.5));
-        delay.setOnFinished(ev -> {
-            menu.setCurrentUser(user);
-             stage.setScene(DifficultyScene.createScene(stage));
+            PauseTransition delay = new PauseTransition(Duration.seconds(1.2));
+            delay.setOnFinished(ev -> {
+                User newUser = new User(name, pass);
+                userManager.addUser(newUser);
+                userManager.speichereAlleUser();
+                stage.setScene(LoginScene.create(menu));
+            });
+            delay.play();
         });
-        delay.play();
+
+        loginBtn.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            String pass = passField.getText().trim();
+            User user = userManager.getUserByUsername(name);
+
+            if (user == null || !user.getPassword().equals(pass)) {
+                showFeedback(feedback, "Invalid login. Check the trainer name and password.", true);
+                return;
+            }
+
+            stage.setScene(SceneStyler.createLoadingScene("Logging in", "Entering the battle lobby...", 800, 600));
+
+            PauseTransition delay = new PauseTransition(Duration.seconds(1.2));
+            delay.setOnFinished(ev -> {
+                menu.setCurrentUser(user);
+                stage.setScene(DifficultyScene.createScene(stage));
+            });
+            delay.play();
+        });
+
+        return SceneStyler.createScene(content, 800, 600);
     }
-});
 
-
-        Scene scene = new Scene(root, 800, 600);
-        backgroundView.fitWidthProperty().bind(scene.widthProperty());
-        backgroundView.fitHeightProperty().bind(scene.heightProperty());
-        return scene;
-
+    private static void showFeedback(Label feedback, String message, boolean isError) {
+        feedback.setVisible(true);
+        feedback.setText(message);
+        SceneStyler.styleFeedbackLabel(feedback, isError);
     }
 }

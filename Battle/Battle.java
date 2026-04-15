@@ -22,6 +22,8 @@ public class Battle {
     private Bot bot;
     private boolean gameOver = false;
     private boolean isPlayerWinner = false; 
+    private Attacke lastPlayerAttack;
+    private Attacke lastEnemyAttack;
 
     /**
      * Erstellt ein neues {@code Battle}-Objekt mit zwei Teams und den jeweils aktiven Pokémon.
@@ -43,6 +45,7 @@ public class Battle {
         StringBuilder result =new StringBuilder();
         Pokemon attacker = p1;
         Pokemon defender = p2;
+        lastPlayerAttack = attack;
         
         int damage1 = calculateDamage(attack, defender);
         defender.setHp(defender.getHp()-damage1);
@@ -82,6 +85,7 @@ public class Battle {
         Pokemon attacker =  p2; 
         result.append("Bot schickt ").append(attacker.getName()).append(" in den Kampf.\n");
         Attacke kiAttack = bot.choosAttacke(attacker, defender);
+        lastEnemyAttack = kiAttack;
         int damage = calculateDamage(kiAttack, defender);
         defender.setHp(defender.getHp() - damage);
 
@@ -172,6 +176,14 @@ public class Battle {
     }
     public List<Pokemon>getTeam2(){
         return team2;
+    }
+
+    public Attacke getLastPlayerAttack() {
+        return lastPlayerAttack;
+    }
+
+    public Attacke getLastEnemyAttack() {
+        return lastEnemyAttack;
     }
 }
 

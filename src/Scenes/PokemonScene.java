@@ -1,137 +1,262 @@
 package Scenes;
 
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.paint.Color;
-
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
-import javafx.stage.Stage;
+import Pokemon.Bisasam;
+import Pokemon.Evoli;
+import Pokemon.Glumanda;
+import Pokemon.Lektroball;
+import Pokemon.Nebulak;
+import Pokemon.Pokemon;
+import Pokemon.Schiggy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-
-import Pokemon.*;
-
-import java.util.List;
-import javafx.scene.control.Label; 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.text.TextAlignment;
+import javafx.stage.Stage;
 
 public class PokemonScene {
 
     public static Scene createScene(Stage stage) {
+        return createScene(stage, new ArrayList<>());
+    }
+
+    public static Scene createScene(Stage stage, List<String> preselectedNames) {
         List<Pokemon> selectedPokemons = new ArrayList<>();
         Set<String> selected = new HashSet<>();
 
-        Label title = new Label("CHOOSE YOUR POKÉMON");
-        title.setFont(Font.font("Comic Sans MS", FontWeight.BOLD, 28));
-        title.setTextFill(Color.DARKORANGE);
-
-        VBox glumandaBox = createPokemonBox("Glumanda", new Glumanda(), selectedPokemons, selected, stage);
-        VBox bisasamBox = createPokemonBox("Bisasam", new Bisasam(), selectedPokemons, selected, stage);
-        VBox evoliBox = createPokemonBox("Evoli", new Evoli(), selectedPokemons, selected, stage);
-        VBox schiggyBox = createPokemonBox("Schiggy", new Schiggy(), selectedPokemons, selected, stage);
-        VBox lektroballBox = createPokemonBox("Lektroball", new Lektroball(), selectedPokemons, selected, stage);
-        VBox nebulaBox = createPokemonBox("Nebulak", new Nebulak(), selectedPokemons, selected, stage);
+        Label badge = SceneStyler.createBadge("TEAM DRAFT");
+        Label title = SceneStyler.createTitle("Choose Your Pokemon");
+        Label subtitle = SceneStyler.createSubtitle("Pick three fighters for your opening team. Click a selected card again to remove it.");
+        Label counter = SceneStyler.createBadge("0 / 3 selected");
+        Label[] slotLabels = new Label[3];
 
         GridPane pokemonGrid = new GridPane();
+        pokemonGrid.setHgap(18);
+        pokemonGrid.setVgap(18);
+        pokemonGrid.setPadding(new Insets(16));
         pokemonGrid.setAlignment(Pos.CENTER);
-        pokemonGrid.setHgap(20);
-        pokemonGrid.setVgap(20);
-        pokemonGrid.setPadding(new Insets(20));
 
-        VBox[] boxes = {glumandaBox, bisasamBox, evoliBox, schiggyBox, lektroballBox, nebulaBox};
-        for (int i = 0; i < boxes.length; i++) {
-            pokemonGrid.add(boxes[i], i % 3, i / 3);
+        VBox[] cards = {
+            createPokemonBox(new Glumanda(), selectedPokemons, selected, counter),
+            createPokemonBox(new Bisasam(), selectedPokemons, selected, counter),
+            createPokemonBox(new Evoli(), selectedPokemons, selected, counter),
+            createPokemonBox(new Schiggy(), selectedPokemons, selected, counter),
+            createPokemonBox(new Lektroball(), selectedPokemons, selected, counter),
+            createPokemonBox(new Nebulak(), selectedPokemons, selected, counter)
+        };
+
+        for (int i = 0; i < cards.length; i++) {
+            pokemonGrid.add(cards[i], i % 3, i / 3);
         }
 
-         VBox contentBox = new VBox(30, title, pokemonGrid);
-        contentBox.setAlignment(Pos.TOP_CENTER);
-        contentBox.setPadding(new Insets(40));
-        contentBox.setStyle("-fx-background-color: rgba(255,255,255,0.6); -fx-background-radius: 10;");
-        String path = System.getProperty("user.dir") + "/Images/background.png";
-        Image bgImage = new Image("file:"+path);
-        ImageView backgroundView = new ImageView(bgImage);
-        backgroundView.setPreserveRatio(false);
-        
-        StackPane rootPane = new StackPane(backgroundView, contentBox);
+        Label slotsTitle = SceneStyler.createSectionLabel("Selected Team");
+        GridPane selectionPreview = new GridPane();
+        selectionPreview.setHgap(12);
+        selectionPreview.setAlignment(Pos.CENTER);
+        for (int i = 0; i < slotLabels.length; i++) {
+            slotLabels[i] = SceneStyler.createBodyLabel("Empty");
+            slotLabels[i].setTextAlignment(TextAlignment.CENTER);
 
-        Scene scene = new Scene(rootPane, 1000, 600);
-        backgroundView.fitWidthProperty().bind(scene.widthProperty());
-        backgroundView.fitHeightProperty().bind(scene.heightProperty());
+            VBox slot = new VBox(slotLabels[i]);
+            slot.setAlignment(Pos.CENTER);
+            slot.setPrefWidth(180);
+            slot.setMinHeight(62);
+            slot.setPadding(new Insets(14));
+            slot.setStyle(SceneStyler.CARD_STYLE);
+            selectionPreview.add(slot, i, 0);
+        }
 
-        return scene;
+        Button continueButton = new Button("Continue to Battle");
+        SceneStyler.stylePrimaryButton(continueButton);
+        continueButton.setDisable(true);
+        continueButton.setOnAction(e -> goToBattlePrep(stage, selectedPokemons));
+
+        updateSelectionPreview(selectedPokemons, counter, continueButton, slotLabels);
+
+        VBox contentBox = SceneStyler.createPanel(
+            Pos.CENTER,
+            20,
+            badge,
+            title,
+            subtitle,
+            counter,
+            pokemonGrid,
+            slotsTitle,
+            selectionPreview,
+            continueButton
+        );
+        contentBox.setPadding(new Insets(28));
+        contentBox.setMaxWidth(860);
+
+        for (VBox card : cards) {
+            card.setOnMouseClicked(e -> {
+                Pokemon pokemon = (Pokemon) card.getUserData();
+                togglePokemonSelection(pokemon, card, selectedPokemons, selected, counter, continueButton, slotLabels);
+                if (selectedPokemons.size() == 3) {
+                    goToBattlePrep(stage, selectedPokemons);
+                }
+            });
+        }
+
+        applyPreselectedTeam(preselectedNames, cards, selectedPokemons, selected, counter, continueButton, slotLabels);
+
+        return SceneStyler.createScene(contentBox, 1000, 700);
     }
 
-    private static VBox createPokemonBox(String name, Pokemon pokemonInstance, List<Pokemon> selectedPokemons, Set<String> selected, Stage stage) {
-        ImageView imageView = new ImageView(new Image("file:Images/" + name.toLowerCase() + ".png"));
+    private static VBox createPokemonBox(
+        Pokemon pokemonInstance,
+        List<Pokemon> selectedPokemons,
+        Set<String> selected,
+        Label counter
+    ) {
+        String name = pokemonInstance.getName();
+        String imagePath = "file:" + System.getProperty("user.dir") + "/Images/" + pokemonInstance.getClass().getSimpleName() + ".png";
+        ImageView imageView = new ImageView(new Image(imagePath));
         imageView.setFitWidth(150);
-        imageView.setFitHeight(200);
+        imageView.setFitHeight(170);
+        imageView.setPreserveRatio(true);
         imageView.setMouseTransparent(true);
 
-       // Info button on image
-         Button infoButton = new Button("ℹ");
+        Button infoButton = new Button("i");
         infoButton.setOnAction(e -> showInfoPopup(pokemonInstance));
-        infoButton.setStyle(
-            "-fx-background-radius: 50em;" +
-            "-fx-min-width: 30px;" +
-            "-fx-min-height: 30px;" +
-            "-fx-font-size: 16px;" +
-            "-fx-text-fill: white;" +
-            "-fx-background-color: #34495e;" +
-            "-fx-border-color: white;" +
-            "-fx-border-width: 2px;" +
-            "-fx-border-radius: 50em;"
+        SceneStyler.styleInfoButton(infoButton);
+
+        StackPane imageCard = new StackPane(imageView, infoButton);
+        imageCard.setPadding(new Insets(8));
+        imageCard.setStyle(
+            "-fx-background-color: rgba(255,255,255,0.08);" +
+            "-fx-background-radius: 18;" +
+            "-fx-border-color: rgba(255,255,255,0.08);" +
+            "-fx-border-radius: 18;"
         );
+        StackPane.setAlignment(infoButton, Pos.TOP_RIGHT);
+        StackPane.setMargin(infoButton, new Insets(6));
 
-      
-        Pane overlay = new Pane(infoButton);
-        overlay.setPickOnBounds(false); 
+        Label label = SceneStyler.createSectionLabel(name);
+        label.setTextAlignment(TextAlignment.CENTER);
+        Label elementLabel = SceneStyler.createBodyLabel("Type: " + pokemonInstance.getElementsLabel());
+        elementLabel.setTextAlignment(TextAlignment.CENTER);
+        Label hpLabel = SceneStyler.createBodyLabel("HP: " + pokemonInstance.getHp());
+        hpLabel.setTextAlignment(TextAlignment.CENTER);
 
-        StackPane.setAlignment(overlay, Pos.TOP_RIGHT);
-        StackPane.setMargin(overlay, new Insets(8));
-
-        StackPane imageStack = new StackPane(imageView, overlay);
-
-
-
-        Label label = new Label(name);
-        label.setFont(Font.font("Comic Sans MS", FontWeight.SEMI_BOLD, 18));
-        label.setTextFill(Color.DARKGREEN);
-
-     VBox box = new VBox(5, imageStack, label);
+        VBox box = new VBox(10, imageCard, label, elementLabel, hpLabel);
         box.setAlignment(Pos.CENTER);
-
-        box.setOnMouseClicked(e -> {
-            if (selectedPokemons.size() < 3 && !selected.contains(name)) {
-                selectedPokemons.add(pokemonInstance);
-                box.setStyle("-fx-border-color: green; -fx-border-width: 3px;");
-                selected.add(name);
-            }
-            if (selectedPokemons.size() == 3) {
-                Scene battleScene = BattlePrepScene.create(stage, selectedPokemons);
-                stage.setScene(battleScene);
-            }
-        });
+        box.setPrefWidth(220);
+        box.setMinHeight(320);
+        box.setPadding(new Insets(18));
+        box.setUserData(pokemonInstance);
+        SceneStyler.setSelectableCardStyle(box, false);
 
         return box;
     }
-     private static void showInfoPopup(Pokemon pokemon) {
-    Alert alert = new Alert(Alert.AlertType.INFORMATION);
-    alert.setTitle("Pokémon Info");
-    alert.setHeaderText(pokemon.getName());
 
-    String content =
-                    "HP: " + pokemon.getHp() + "\n"
-                   + "Elemente: " + pokemon.getElementsLabel() + "\n"
-                   + "Schwere Kämpfe: " + pokemon.getSchwereKampfSiege();
+    private static void togglePokemonSelection(
+        Pokemon pokemonInstance,
+        VBox card,
+        List<Pokemon> selectedPokemons,
+        Set<String> selected,
+        Label counter,
+        Button continueButton,
+        Label[] slotLabels
+    ) {
+        String name = pokemonInstance.getName();
 
-    alert.setContentText(content);
-    alert.showAndWait();
-}
+        if (selected.contains(name)) {
+            selected.remove(name);
+            selectedPokemons.remove(pokemonInstance);
+            SceneStyler.setSelectableCardStyle(card, false);
+        } else if (selectedPokemons.size() < 3) {
+            selected.add(name);
+            selectedPokemons.add(pokemonInstance);
+            SceneStyler.setSelectableCardStyle(card, true);
+        }
 
+        updateSelectionPreview(selectedPokemons, counter, continueButton, slotLabels);
+    }
+
+    private static void updateSelectionPreview(
+        List<Pokemon> selectedPokemons,
+        Label counter,
+        Button continueButton,
+        Label[] slotLabels
+    ) {
+        counter.setText(selectedPokemons.size() + " / 3 selected");
+        continueButton.setDisable(selectedPokemons.size() != 3);
+
+        for (int i = 0; i < slotLabels.length; i++) {
+            if (i < selectedPokemons.size()) {
+                slotLabels[i].setText(selectedPokemons.get(i).getName());
+                slotLabels[i].getParent().setStyle(SceneStyler.SELECTED_CARD_STYLE);
+            } else {
+                slotLabels[i].setText("Empty");
+                slotLabels[i].getParent().setStyle(SceneStyler.CARD_STYLE);
+            }
+        }
+    }
+
+    private static void applyPreselectedTeam(
+        List<String> preselectedNames,
+        VBox[] cards,
+        List<Pokemon> selectedPokemons,
+        Set<String> selected,
+        Label counter,
+        Button continueButton,
+        Label[] slotLabels
+    ) {
+        if (preselectedNames == null) {
+            return;
+        }
+
+        List<String> validNames = Arrays.asList("Glumanda", "Bisasam", "Evoli", "Schiggy", "Lektroball", "Nebulak");
+        for (String name : preselectedNames) {
+            if (!validNames.contains(name) || selected.contains(name) || selectedPokemons.size() >= 3) {
+                continue;
+            }
+
+            for (VBox card : cards) {
+                Pokemon pokemon = (Pokemon) card.getUserData();
+                if (pokemon.getName().equals(name)) {
+                    selected.add(name);
+                    selectedPokemons.add(pokemon);
+                    SceneStyler.setSelectableCardStyle(card, true);
+                    break;
+                }
+            }
+        }
+
+        updateSelectionPreview(selectedPokemons, counter, continueButton, slotLabels);
+    }
+
+    private static void goToBattlePrep(Stage stage, List<Pokemon> selectedPokemons) {
+        if (selectedPokemons.size() != 3) {
+            return;
+        }
+        stage.setScene(BattlePrepScene.create(stage, new ArrayList<>(selectedPokemons)));
+    }
+
+    private static void showInfoPopup(Pokemon pokemon) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Pokemon Info");
+        alert.setHeaderText(pokemon.getName());
+
+        String content =
+            "HP: " + pokemon.getHp() + "\n"
+                + "Type: " + pokemon.getElementsLabel() + "\n"
+                + "Hard battles won: " + pokemon.getSchwereKampfSiege();
+
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
 }
